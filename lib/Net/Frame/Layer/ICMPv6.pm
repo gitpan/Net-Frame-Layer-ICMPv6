@@ -1,11 +1,11 @@
 #
-# $Id: ICMPv6.pm,v 1.2 2006/12/21 18:07:40 gomor Exp $
+# $Id: ICMPv6.pm,v 1.3 2006/12/28 15:25:51 gomor Exp $
 #
 package Net::Frame::Layer::ICMPv6;
 use strict;
 use warnings;
 
-our $VERSION = '1.00';
+our $VERSION = '1.01';
 
 use Net::Frame::Layer qw(:consts :subs);
 require Exporter;
@@ -35,6 +35,7 @@ our %EXPORT_TAGS = (
       NF_ICMPv6_TYPE_NEIGHBORSOLICITATION
       NF_ICMPv6_TYPE_NEIGHBORADVERTISEMENT
       NF_ICMPv6_OPTION_SOURCELINKLAYERADDRESS
+      NF_ICMPv6_OPTION_TARGETLINKLAYERADDRESS
       NF_ICMPv6_FLAG_ROUTER
       NF_ICMPv6_FLAG_SOLICITED
       NF_ICMPv6_FLAG_OVERRIDE
@@ -119,7 +120,7 @@ sub match {
    }
    # XXX: maybe should check option type 1 here
    elsif ($sType eq NF_ICMPv6_TYPE_NEIGHBORSOLICITATION
-      &&  $wType eq NF_ICMPv6_TYPE_NEIGHBORSOLICITATION
+      &&  $wType eq NF_ICMPv6_TYPE_NEIGHBORADVERTISEMENT
       &&  $with->icmpType && $with->options) {
       return 1;
    }
@@ -236,6 +237,11 @@ sub computeChecksums {
       inet6Aton($h->{src}), inet6Aton($h->{dst}), $h->{payloadLength},
       $v32->to_Dec, $self->type, $self->code, 0, $self->icmpType->pack,
    ) or return undef;
+
+   for ($self->options) {
+      $packed .= $self->SUPER::pack('a*', $_->pack)
+         or return undef;
+   }
 
    $self->checksum(inetChecksum($packed));
 

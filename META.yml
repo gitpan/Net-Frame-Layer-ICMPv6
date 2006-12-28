@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:                Net-Frame-Layer-ICMPv6
-version:             1.00
+version:             1.01
 abstract:            Internet Control Message Protocol v6 layer object
 license:             Artistic
 generated_by:        ExtUtils::MakeMaker version 6.31
