@@ -1,9 +1,8 @@
 #
-# $Id: NeighborSolicitation.pm,v 1.2 2006/12/21 22:33:56 gomor Exp $
+# $Id: NeighborSolicitation.pm 14 2009-05-31 15:12:43Z gomor $
 #
 package Net::Frame::Layer::ICMPv6::NeighborSolicitation;
-use strict;
-use warnings;
+use strict; use warnings;
 
 use Net::Frame::Layer qw(:consts :subs);
 our @ISA = qw(Net::Frame::Layer);
@@ -12,29 +11,63 @@ our @AS = qw(
    reserved
    targetAddress
 );
+our @AA = qw(
+   options
+);
 __PACKAGE__->cgBuildIndices;
 __PACKAGE__->cgBuildAccessorsScalar(\@AS);
+__PACKAGE__->cgBuildAccessorsArray (\@AA);
 
-#no strict 'vars';
+use Net::Frame::Layer::ICMPv6::Option;
 
 sub new {
    shift->SUPER::new(
       reserved      => 0,
       targetAddress => '::1',
+      options       => [],
       @_,
    );
 }
 
-sub getLength { 20 }
+sub getOptionsLength {
+   my $self = shift;
+   my $len = 0;
+   $len += $_->getLength for $self->options;
+   return $len;
+}
+
+sub getLength {
+   my $self = shift;
+   return 20 + $self->getOptionsLength;
+}
 
 sub pack {
    my $self = shift;
 
-   $self->raw($self->SUPER::pack('Na16',
+   my $raw = $self->SUPER::pack('Na16',
       $self->reserved, inet6Aton($self->targetAddress),
-   )) or return undef;
+   ) or return;
 
-   $self->raw;
+   for ($self->options) {
+      $raw .= $_->pack;
+   }
+
+   return $self->raw($raw);
+}
+
+sub _unpackOptions {
+   my $self = shift;
+   my ($payload) = @_;
+
+   my @options = ();
+   while (defined($payload) && length($payload)) {
+      my $opt = Net::Frame::Layer::ICMPv6::Option->new(raw => $payload)->unpack;
+      push @options, $opt;
+      $payload = $opt->payload;
+      $opt->payload(undef);
+   }
+   $self->options(\@options);
+   return $payload;
 }
 
 sub unpack {
@@ -42,23 +75,33 @@ sub unpack {
 
    my ($reserved, $targetAddress, $payload) =
       $self->SUPER::unpack('Na16 a*', $self->raw)
-         or return undef;
+         or return;
 
    $self->reserved($reserved);
    $self->targetAddress(inet6Ntoa($targetAddress));
 
+   if (defined($payload) && length($payload)) {
+      $payload = $self->_unpackOptions($payload);
+   }
+
    $self->payload($payload);
 
-   $self;
+   return $self;
 }
 
 sub print {
    my $self = shift;
 
    my $l = $self->layer;
-   sprintf "$l: reserved:%d\n".
-           "$l: targetAddress:%s",
-              $self->reserved, $self->targetAddress;
+   my $buf = sprintf "$l: reserved:%d\n".
+                     "$l: targetAddress:%s",
+                        $self->reserved, $self->targetAddress;
+
+   for ($self->options) {
+      $buf .= "\n".$_->print;
+   }
+
+   return $buf;
 }
 
 1;
@@ -108,6 +151,10 @@ Should be zeroed.
 
 An IPv6 address.
 
+=item B<options>
+
+An arrayref of B<Net::Frame::Layer::Option> objects.
+
 =back
 
 The following are inherited attributes. See B<Net::Frame::Layer> for more information.
@@ -131,6 +178,10 @@ The following are inherited attributes. See B<Net::Frame::Layer> for more inform
 =item B<new> (hash)
 
 Object constructor. You can pass attributes that will overwrite default ones. See B<SYNOPSIS> for default values.
+
+=item B<getOptionsLength>
+
+Returns the length in bytes of options, 0 if none.
 
 =back
 
@@ -174,7 +225,7 @@ Patrice E<lt>GomoRE<gt> Auffret
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (c) 2006, Patrice E<lt>GomoRE<gt> Auffret
+Copyright (c) 2006-2009, Patrice E<lt>GomoRE<gt> Auffret
 
 You may distribute this module under the terms of the Artistic license.
 See LICENSE.Artistic file in the source distribution archive.

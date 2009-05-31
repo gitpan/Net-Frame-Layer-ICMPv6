@@ -1,5 +1,5 @@
 #
-# $Id: Makefile.PL,v 1.1 2006/12/21 17:54:59 gomor Exp $
+# $Id: Makefile.PL 14 2009-05-31 15:12:43Z gomor $
 #
 use ExtUtils::MakeMaker;
 
@@ -8,9 +8,9 @@ require v5.6.1;
 WriteMakefile(
    NAME          => 'Net::Frame::Layer::ICMPv6',
    VERSION_FROM  => 'lib/Net/Frame/Layer/ICMPv6.pm',
-   LICENSE       => 'Artistic',
+   LICENSE       => 'artistic',
    ABSTRACT_FROM => 'lib/Net/Frame/Layer/ICMPv6.pm',
-   AUTHOR        => 'GomoR <perl@gomor.org>',
+   AUTHOR        => 'GomoR <gomor-cpan_at_gomor.org>',
    PREREQ_PM     => {
       Net::Frame => 0,
    },

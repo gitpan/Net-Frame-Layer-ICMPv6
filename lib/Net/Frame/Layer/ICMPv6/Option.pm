@@ -1,9 +1,8 @@
 #
-# $Id: Option.pm,v 1.2 2006/12/21 22:33:56 gomor Exp $
+# $Id: Option.pm 14 2009-05-31 15:12:43Z gomor $
 #
 package Net::Frame::Layer::ICMPv6::Option;
-use strict;
-use warnings;
+use strict; use warnings;
 
 use Net::Frame::Layer qw(:consts :subs);
 our @ISA = qw(Net::Frame::Layer);
@@ -184,7 +183,7 @@ Patrice E<lt>GomoRE<gt> Auffret
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (c) 2006, Patrice E<lt>GomoRE<gt> Auffret
+Copyright (c) 2006-2009, Patrice E<lt>GomoRE<gt> Auffret
 
 You may distribute this module under the terms of the Artistic license.
 See LICENSE.Artistic file in the source distribution archive.

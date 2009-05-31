@@ -1,14 +1,13 @@
 #
-# $Id: ICMPv6.pm,v 1.3 2006/12/28 15:25:51 gomor Exp $
+# $Id: ICMPv6.pm 14 2009-05-31 15:12:43Z gomor $
 #
 package Net::Frame::Layer::ICMPv6;
-use strict;
-use warnings;
+use strict; use warnings;
 
-our $VERSION = '1.01';
+our $VERSION = '1.02';
 
 use Net::Frame::Layer qw(:consts :subs);
-require Exporter;
+use Exporter;
 our @ISA = qw(Net::Frame::Layer Exporter);
 
 our %EXPORT_TAGS = (
@@ -78,29 +77,17 @@ our @AS = qw(
    type
    code
    checksum
-   icmpType
-);
-our @AA = qw(
-   options
 );
 __PACKAGE__->cgBuildIndices;
 __PACKAGE__->cgBuildAccessorsScalar(\@AS);
-__PACKAGE__->cgBuildAccessorsArray (\@AA);
 
-#no strict 'vars';
-
-require Bit::Vector;
-require Net::Frame::Layer::ICMPv6::Option;
-require Net::Frame::Layer::ICMPv6::Echo;
-require Net::Frame::Layer::ICMPv6::NeighborAdvertisement;
-require Net::Frame::Layer::ICMPv6::NeighborSolicitation;
+use Bit::Vector;
 
 sub new {
    shift->SUPER::new(
       type     => NF_ICMPv6_TYPE_ECHO_REQUEST,
       code     => NF_ICMPv6_CODE_ZERO,
       checksum => 0,
-      options  => [],
       @_,
    );
 }
@@ -118,53 +105,23 @@ sub match {
    &&  $wType eq NF_ICMPv6_TYPE_ECHO_REPLY) {
       return 1;
    }
-   # XXX: maybe should check option type 1 here
    elsif ($sType eq NF_ICMPv6_TYPE_NEIGHBORSOLICITATION
-      &&  $wType eq NF_ICMPv6_TYPE_NEIGHBORADVERTISEMENT
-      &&  $with->icmpType && $with->options) {
+      &&  $wType eq NF_ICMPv6_TYPE_NEIGHBORADVERTISEMENT) {
       return 1;
    }
-   0;
+   return 0;
 }
 
-sub getOptionsLength {
-   my $self = shift;
-   my $len = 0;
-   $len += $_->getLength for $self->options;
-   $len;
-}
-
-sub getLength {
-   my $self = shift;
-   my $len = 4;
-   if ($self->icmpType) {
-      $len += $self->icmpType->getLength;
-   }
-   $len += $self->getOptionsLength;
-   $len;
-}
+sub getLength { 4 }
 
 sub pack {
    my $self = shift;
 
    my $raw = $self->SUPER::pack('CCn',
       $self->type, $self->code, $self->checksum,
-   ) or return undef;
+   ) or return;
 
-   if ($self->icmpType) {
-      $raw .= $self->icmpType->pack
-         or return undef;
-
-      # Move payload from ICMP type to $self
-      $self->payload($self->icmpType->payload);
-      $self->icmpType->payload(undef);
-   }
-
-   for ($self->options) {
-      $raw .= $_->pack;
-   }
-
-   $self->raw($raw);
+   return $self->raw($raw);
 }
 
 sub unpack {
@@ -172,80 +129,42 @@ sub unpack {
 
    my ($type, $code, $checksum, $payload) =
       $self->SUPER::unpack('CCn a*', $self->raw)
-         or return undef;
+         or return;
 
    $self->type($type);
    $self->code($code);
    $self->checksum($checksum);
+   $self->payload($payload);
 
-   if ($payload) {
-      if ($type eq NF_ICMPv6_TYPE_ECHO_REQUEST
-      ||  $type eq NF_ICMPv6_TYPE_ECHO_REPLY) {
-         $self->icmpType(
-            Net::Frame::Layer::ICMPv6::Echo->new(raw => $payload)->unpack,
-         );
-      }
-      elsif ($type eq NF_ICMPv6_TYPE_NEIGHBORSOLICITATION) {
-         my $icmp = Net::Frame::Layer::ICMPv6::NeighborSolicitation->new(
-            raw => $payload,
-         )->unpack;
-         $self->_unpackOptions($icmp, $icmp->payload) if $icmp->payload;
-         $self->icmpType($icmp);
-      }
-      elsif ($type eq NF_ICMPv6_TYPE_NEIGHBORADVERTISEMENT) {
-         my $icmp = Net::Frame::Layer::ICMPv6::NeighborAdvertisement->new(
-            raw => $payload,
-         )->unpack;
-         $self->_unpackOptions($icmp, $icmp->payload) if $icmp->payload;
-         $self->icmpType($icmp);
-      }
-
-      if ($self->icmpType && $self->icmpType->payload) {
-         $self->payload($self->icmpType->payload);
-         $self->icmpType->payload(undef);
-      }
-   }
-
-   $self;
-}
-
-sub _unpackOptions {
-   my $self = shift;
-   my ($icmp, $payload) = @_;
-
-   my @options = ();
-   while ($payload) {
-      my $opt = Net::Frame::Layer::ICMPv6::Option->new(raw => $payload)->unpack;
-      push @options, $opt;
-      $payload = $opt->payload;
-   }
-
-   $icmp->payload(undef);
-   $self->payload(undef);
-   $self->options(\@options);
+   return $self;
 }
 
 sub computeChecksums {
    my $self = shift;
-   my ($h)  = @_;
+   my ($layers) = @_;
+
+   my $icmpType;
+   for my $l (@$layers) {
+      if ($l->layer =~ /ICMPv6::/) { $icmpType = $l; last; }
+   }
+   my $ip;
+   for my $l (@$layers) {
+      if ($l->layer eq 'IPv6') { $ip = $l; last; }
+   }
 
    my $zero       = Bit::Vector->new_Dec(24, 0);
-   my $nextHeader = Bit::Vector->new_Dec( 8, $h->{nextHeader});
+   my $nextHeader = Bit::Vector->new_Dec( 8, $ip->nextHeader);
    my $v32        = $zero->Concat_List($nextHeader);
 
    my $packed = $self->SUPER::pack('a*a*NNCCna*',
-      inet6Aton($h->{src}), inet6Aton($h->{dst}), $h->{payloadLength},
-      $v32->to_Dec, $self->type, $self->code, 0, $self->icmpType->pack,
-   ) or return undef;
+      inet6Aton($ip->src), inet6Aton($ip->dst), $ip->payloadLength,
+      $v32->to_Dec, $self->type, $self->code, 0, $icmpType->pack,
+   ) or return;
 
-   for ($self->options) {
-      $packed .= $self->SUPER::pack('a*', $_->pack)
-         or return undef;
-   }
+   my $payload = $layers->[-1]->payload || '';
+   $self->checksum(inetChecksum($packed.$payload));
 
-   $self->checksum(inetChecksum($packed));
-
-   1;
+   return 1;
 }
 
 sub encapsulate {
@@ -253,16 +172,26 @@ sub encapsulate {
 
    return $self->nextLayer if $self->nextLayer;
 
-#  if ($self->payload) {
-#     my $type = $self->type;
-#     #if ($type eq NF_ICMPv6_TYPE_DESTUNREACH
-#     #||  $type eq NF_ICMPv6_TYPE_REDIRECT
-#     #||  $type eq NF_ICMPv6_TYPE_TIMEEXCEED) {
-#        #return 'IPv6';
-#     #}
-#  }
+   if ($self->payload) {
+      my $type = $self->type;
+#     if ($type eq NF_ICMPv6_TYPE_DESTUNREACH
+#     ||  $type eq NF_ICMPv6_TYPE_REDIRECT
+#     ||  $type eq NF_ICMPv6_TYPE_TIMEEXCEED) {
+#        return 'IPv6';
+#     }
+      if ($type eq NF_ICMPv6_TYPE_ECHO_REQUEST
+      ||  $type eq NF_ICMPv6_TYPE_ECHO_REPLY) {
+         return 'ICMPv6::Echo';
+      }
+      elsif ($type eq NF_ICMPv6_TYPE_NEIGHBORSOLICITATION) {
+         return 'ICMPv6::NeighborSolicitation';
+      }
+      elsif ($type eq NF_ICMPv6_TYPE_NEIGHBORADVERTISEMENT) {
+         return 'ICMPv6::NeighborAdvertisement';
+      }
+   }
 
-   NF_LAYER_NONE;
+   return NF_LAYER_NONE;
 }
 
 sub print {
@@ -272,15 +201,7 @@ sub print {
    my $buf = sprintf "$l: type:%d  code:%d  checksum:0x%04x",
       $self->type, $self->code, $self->checksum;
 
-   if ($self->icmpType) {
-      $buf .= "\n".$self->icmpType->print;
-   }
-
-   for ($self->options) {
-      $buf .= "\n".$_->print;
-   }
-
-   $buf;
+   return $buf;
 }
 
 1;
@@ -293,22 +214,21 @@ Net::Frame::Layer::ICMPv6 - Internet Control Message Protocol v6 layer object
 
 =head1 SYNOPSIS
 
+   use Net::Frame::Simple;
    use Net::Frame::Layer::ICMPv6 qw(:consts);
 
    my $icmp = Net::Frame::Layer::ICMPv6->new(
       type     => NF_ICMPv6_TYPE_ECHO_REQUEST,
       code     => NF_ICMPv6_CODE_ZERO,
       checksum => 0,
-      options  => [],
    );
 
    # Build an ICMPv6 echo-request
    use Net::Frame::Layer::ICMPv6::Echo;
    my $echo = Net::Frame::Layer::ICMPv6::Echo->new(payload => 'echo');
-   $icmp->icmpType($echo);
-   $icmp->pack;
 
-   print $icmp->print."\n";
+   my $echoReq = Net::Frame::Simple->new(layers => [ $icmp, $echo ]);
+   print $echoReq->print."\n";
 
    # Build an ICMPv6 neighbor-solicitation
    use Net::Frame::Layer::ICMPv6::NeighborSolicitation;
@@ -316,12 +236,14 @@ Net::Frame::Layer::ICMPv6 - Internet Control Message Protocol v6 layer object
       targetAddress => $targetIpv6Address,
    );
    $icmp->type(NF_ICMPv6_TYPE_NEIGHBORSOLICITATION);
-   $icmp->icmpType($solicit);
-   $icmp->pack;
 
-   print $icmp->print."\n";
+   my $nsReq = Net::Frame::Simple->new(layers => [ $icmp, $solicit ]);
+   print $nsReq->print."\n";
 
+   #
    # Read a raw layer
+   #
+
    my $layer = Net::Frame::Layer::ICMPv6->new(raw => $raw);
 
    print $layer->print."\n";
@@ -333,7 +255,9 @@ Net::Frame::Layer::ICMPv6 - Internet Control Message Protocol v6 layer object
 This modules implements the encoding and decoding of the ICMPv6 layer.
 
 RFC: http://www.rfc-editor.org/rfc/rfc2463.txt
+
 RFC: http://www.rfc-editor.org/rfc/rfc2461.txt
+
 RFC: http://www.rfc-editor.org/rfc/rfc2460.txt
 
 See also B<Net::Frame::Layer> for other attributes and methods.
@@ -351,14 +275,6 @@ Type and code fields. See B<CONSTANTS>.
 =item B<checksum>
 
 The checksum of ICMPv6 header.
-
-=item B<icmpType>
-
-A pointer to a B<Net::Frame::Layer::ICMPv6::*> layer.
-
-=item B<options>
-
-An arrayref of B<Net::Frame::Layer::Option> objects.
 
 =back
 
@@ -387,10 +303,6 @@ Object constructor. You can pass attributes that will overwrite default ones. Se
 =item B<computeChecksums>
 
 Computes the ICMPv6 checksum.
-
-=item B<getOptionsLength>
-
-Returns the length in bytes of options, 0 if none.
 
 =item B<getKey>
 
@@ -502,7 +414,7 @@ Patrice E<lt>GomoRE<gt> Auffret
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (c) 2006, Patrice E<lt>GomoRE<gt> Auffret
+Copyright (c) 2006-2009, Patrice E<lt>GomoRE<gt> Auffret
 
 You may distribute this module under the terms of the Artistic license.
 See LICENSE.Artistic file in the source distribution archive.

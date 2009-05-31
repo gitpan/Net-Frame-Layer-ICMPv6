@@ -60,11 +60,11 @@ my $ip = Net::Frame::Layer::IPv6->new(
 );
 
 my $icmp = Net::Frame::Layer::ICMPv6->new(
-   type     => NF_ICMPv6_TYPE_NEIGHBORSOLICITATION,
-   icmpType => Net::Frame::Layer::ICMPv6::NeighborSolicitation->new(
-      targetAddress => $target,
-   ),
-   options => [
+   type => NF_ICMPv6_TYPE_NEIGHBORSOLICITATION,
+);
+my $ns = Net::Frame::Layer::ICMPv6::NeighborSolicitation->new(
+   targetAddress => $target,
+   options       => [
       Net::Frame::Layer::ICMPv6::Option->new(
          type   => NF_ICMPv6_OPTION_SOURCELINKLAYERADDRESS,
          length => 1,
@@ -74,7 +74,7 @@ my $icmp = Net::Frame::Layer::ICMPv6->new(
 );
 
 my $oSimple = Net::Frame::Simple->new(
-   layers => [ $eth, $ip, $icmp, ],
+   layers => [ $eth, $ip, $icmp, $ns, ],
 );
 print $oSimple->print."\n";
 
@@ -102,7 +102,7 @@ $oWrite->close;
 
 if ($reply) {
    print 'RECV:'."\n".$reply->print."\n" if $reply;
-   for ($reply->ref->{ICMPv6}->options) {
+   for ($reply->ref->{'ICMPv6::NeighborAdvertisement'}->options) {
       if ($_->type eq NF_ICMPv6_OPTION_TARGETLINKLAYERADDRESS) {
          my $mac = unpack('H*', $_->value);
          print convertMac($mac)."\n";

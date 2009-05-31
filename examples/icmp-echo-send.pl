@@ -32,12 +32,11 @@ my $ip = Net::Frame::Layer::IPv6->new(
    nextHeader => NF_IPv6_PROTOCOL_ICMPv6,
 );
 
-my $icmp = Net::Frame::Layer::ICMPv6->new(
-   icmpType => Net::Frame::Layer::ICMPv6::Echo->new(payload => 'test'),
-);
+my $icmp = Net::Frame::Layer::ICMPv6->new;
+my $echo = Net::Frame::Layer::ICMPv6::Echo->new(payload => 'test');
 
 my $oSimple = Net::Frame::Simple->new(
-   layers => [ $eth, $ip, $icmp, ],
+   layers => [ $eth, $ip, $icmp, $echo, ],
 );
 print $oSimple->print."\n";
 
