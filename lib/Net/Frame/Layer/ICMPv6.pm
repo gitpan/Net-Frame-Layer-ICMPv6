@@ -35,9 +35,14 @@ our %EXPORT_TAGS = (
       NF_ICMPv6_TYPE_NEIGHBORADVERTISEMENT
       NF_ICMPv6_OPTION_SOURCELINKLAYERADDRESS
       NF_ICMPv6_OPTION_TARGETLINKLAYERADDRESS
+      NF_ICMPv6_OPTION_PREFIXINFORMATION
+      NF_ICMPv6_OPTION_REDIRECTEDHEADER
+      NF_ICMPv6_OPTION_MTU
       NF_ICMPv6_FLAG_ROUTER
       NF_ICMPv6_FLAG_SOLICITED
       NF_ICMPv6_FLAG_OVERRIDE
+      NF_ICMPv6_FLAG_MANAGEDADDRESSCONFIGURATION
+      NF_ICMPv6_FLAG_OTHERCONFIGURATION
    )],
 );
 our @EXPORT_OK = (
@@ -68,10 +73,22 @@ use constant NF_ICMPv6_TYPE_NEIGHBORADVERTISEMENT   => 136;
 
 use constant NF_ICMPv6_OPTION_SOURCELINKLAYERADDRESS => 0x01;
 use constant NF_ICMPv6_OPTION_TARGETLINKLAYERADDRESS => 0x02;
+use constant NF_ICMPv6_OPTION_PREFIXINFORMATION      => 0x03;
+use constant NF_ICMPv6_OPTION_REDIRECTEDHEADER       => 0x04;
+use constant NF_ICMPv6_OPTION_MTU                    => 0x05;
 
-use constant NF_ICMPv6_FLAG_ROUTER    => 0x01;
+use constant NF_ICMPv6_FLAG_ROUTER    => 0x04;
 use constant NF_ICMPv6_FLAG_SOLICITED => 0x02;
-use constant NF_ICMPv6_FLAG_OVERRIDE  => 0x04;
+use constant NF_ICMPv6_FLAG_OVERRIDE  => 0x01;
+
+use constant NF_ICMPv6_FLAG_MANAGEDADDRESSCONFIGURATION => 1 << 5;
+use constant NF_ICMPv6_FLAG_OTHERCONFIGURATION          => 1 << 4;
+use constant NF_ICMPv6_FLAG_MOBILEIPv6HOMEAGENT         => 1 << 3;
+use constant NF_ICMPv6_FLAG_ROUTERSELECTIONPREFHIGH     => 1 << 1; # 01b
+use constant NF_ICMPv6_FLAG_ROUTERSELECTIONPREFMEDIUM   => 0;      # 00b
+use constant NF_ICMPv6_FLAG_ROUTERSELECTIONPREFLOW      => 3 << 1; # 11b
+use constant NF_ICMPv6_FLAG_ROUTERSELECTIONPREFRESERVED => 2 << 1; # 10b
+use constant NF_ICMPv6_FLAG_NEIGHBORDISCOVERYPROXY      => 1;
 
 our @AS = qw(
    type
@@ -107,6 +124,10 @@ sub match {
    }
    elsif ($sType eq NF_ICMPv6_TYPE_NEIGHBORSOLICITATION
       &&  $wType eq NF_ICMPv6_TYPE_NEIGHBORADVERTISEMENT) {
+      return 1;
+   }
+   elsif ($sType eq NF_ICMPv6_TYPE_ROUTERSOLICITATION
+      &&  $wType eq NF_ICMPv6_TYPE_ROUTERADVERTISEMENT) {
       return 1;
    }
    return 0;
@@ -189,6 +210,12 @@ sub encapsulate {
       elsif ($type eq NF_ICMPv6_TYPE_NEIGHBORADVERTISEMENT) {
          return 'ICMPv6::NeighborAdvertisement';
       }
+      elsif ($type eq NF_ICMPv6_TYPE_ROUTERSOLICITATION) {
+         return 'ICMPv6::RouterSolicitation';
+      }
+      elsif ($type eq NF_ICMPv6_TYPE_ROUTERADVERTISEMENT) {
+         return 'ICMPv6::RouterAdvertisement';
+      }
    }
 
    return NF_LAYER_NONE;
@@ -253,6 +280,14 @@ Net::Frame::Layer::ICMPv6 - Internet Control Message Protocol v6 layer object
 =head1 DESCRIPTION
 
 This modules implements the encoding and decoding of the ICMPv6 layer.
+
+RFC: http://www.rfc-editor.org/rfc/rfc4861.txt
+
+RFC: http://www.rfc-editor.org/rfc/rfc4389.txt
+
+RFC: http://www.rfc-editor.org/rfc/rfc4191.txt
+
+RFC: http://www.rfc-editor.org/rfc/rfc3775.txt
 
 RFC: http://www.rfc-editor.org/rfc/rfc2463.txt
 
@@ -348,6 +383,8 @@ Load them: use Net::Frame::Layer::ICMPv6 qw(:consts);
 
 =over 4
 
+Various types and codes for ICMPv6 header.
+
 =item B<NF_ICMPv6_CODE_ZERO>
 
 =item B<NF_ICMPv6_TYPE_DESTUNREACH>
@@ -392,7 +429,15 @@ Load them: use Net::Frame::Layer::ICMPv6 qw(:consts);
 
 =item B<NF_ICMPv6_OPTION_SOURCELINKLAYERADDRESS>
 
-Various types and codes for ICMPv6 header.
+=item B<NF_ICMPv6_OPTION_TARGETLINKLAYERADDRESS>
+
+=item B<NF_ICMPv6_OPTION_PREFIXINFORMATION>
+
+=item B<NF_ICMPv6_OPTION_REDIRECTEDHEADER>
+
+=item B<NF_ICMPv6_OPTION_MTU>
+
+Various flags for some ICMPv6 messages.
 
 =item B<NF_ICMPv6_FLAG_ROUTER>
 
@@ -400,7 +445,21 @@ Various types and codes for ICMPv6 header.
 
 =item B<NF_ICMPv6_FLAG_OVERRIDE>
 
-Various flags for some ICMPv6 messages.
+=item B<NF_ICMPv6_FLAG_MANAGEDADDRESSCONFIGURATION>
+
+=item B<NF_ICMPv6_FLAG_OTHERCONFIGURATION>
+
+=item B<NF_ICMPv6_FLAG_MOBILEIPv6HOMEAGENT>
+
+=item B<NF_ICMPv6_FLAG_ROUTERSELECTIONPREFHIGH>
+
+=item B<NF_ICMPv6_FLAG_ROUTERSELECTIONPREFMEDIUM>
+
+=item B<NF_ICMPv6_FLAG_ROUTERSELECTIONPREFLOW>
+
+=item B<NF_ICMPv6_FLAG_ROUTERSELECTIONPREFRESERVED>
+
+=item B<NF_ICMPv6_FLAG_NEIGHBORDISCOVERYPROXY>
 
 =back
 

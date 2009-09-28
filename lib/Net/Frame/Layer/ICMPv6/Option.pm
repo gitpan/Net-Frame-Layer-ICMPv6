@@ -44,7 +44,7 @@ sub unpack {
    my ($type, $length, $tail) = $self->SUPER::unpack('CC a*', $self->raw)
       or return undef;
 
-   my $bLen = $length * 8;
+   my $bLen = $length * 8 - 2; # minus two bytes for type and length -pmv
    my ($value, $payload) = $self->SUPER::unpack("a$bLen a*", $tail)
       or return undef;
 
