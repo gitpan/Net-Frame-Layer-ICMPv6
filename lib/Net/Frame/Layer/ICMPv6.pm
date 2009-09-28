@@ -4,7 +4,7 @@
 package Net::Frame::Layer::ICMPv6;
 use strict; use warnings;
 
-our $VERSION = '1.02';
+our $VERSION = '1.03_1';
 
 use Net::Frame::Layer qw(:consts :subs);
 use Exporter;
