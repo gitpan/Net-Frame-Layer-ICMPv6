@@ -1,5 +1,5 @@
 #
-# $Id: Option.pm 14 2009-05-31 15:12:43Z gomor $
+# $Id: Option.pm 17 2009-11-12 21:18:12Z gomor $
 #
 package Net::Frame::Layer::ICMPv6::Option;
 use strict; use warnings;

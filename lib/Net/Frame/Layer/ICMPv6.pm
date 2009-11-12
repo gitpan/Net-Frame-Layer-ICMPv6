@@ -1,10 +1,10 @@
 #
-# $Id: ICMPv6.pm 14 2009-05-31 15:12:43Z gomor $
+# $Id: ICMPv6.pm 19 2009-11-12 21:37:20Z gomor $
 #
 package Net::Frame::Layer::ICMPv6;
 use strict; use warnings;
 
-our $VERSION = '1.03_1';
+our $VERSION = '1.03';
 
 use Net::Frame::Layer qw(:consts :subs);
 use Exporter;
@@ -381,9 +381,9 @@ The following are inherited methods. Some of them may be overriden in this layer
 
 Load them: use Net::Frame::Layer::ICMPv6 qw(:consts);
 
-=over 4
-
 Various types and codes for ICMPv6 header.
+
+=over 4
 
 =item B<NF_ICMPv6_CODE_ZERO>
 
@@ -437,7 +437,11 @@ Various types and codes for ICMPv6 header.
 
 =item B<NF_ICMPv6_OPTION_MTU>
 
+=back
+
 Various flags for some ICMPv6 messages.
+
+=over 4
 
 =item B<NF_ICMPv6_FLAG_ROUTER>
 

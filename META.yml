@@ -1,10 +1,9 @@
 --- #YAML:1.0
 name:               Net-Frame-Layer-ICMPv6
-version:            1.03_1
+version:            1.03
 abstract:           Internet Control Message Protocol v6 layer object
 author:
     - GomoR <gomor-cpan_at_gomor.org>
-    - pmv <pvenegas_at_infoweapons.com>
 license:            artistic
 distribution_type:  module
 configure_requires:
@@ -12,7 +11,8 @@ configure_requires:
 build_requires:
     ExtUtils::MakeMaker:  0
 requires:
-    Net::Frame:  0
+    Bit::Vector:  0
+    Net::Frame:   0
 no_index:
     directory:
         - t
