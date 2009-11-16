@@ -3,7 +3,7 @@
 # pvenegas@infoweapons.com
 #
 #
-# $Id: RouterSolicitation.pm 18 2009-11-12 21:35:19Z gomor $
+# $Id: RouterSolicitation.pm 24 2009-11-16 19:45:19Z gomor $
 #
 package Net::Frame::Layer::ICMPv6::RouterSolicitation;
 use strict; use warnings;
@@ -217,14 +217,12 @@ L<Net::Frame::Layer::ICMPv6>, L<Net::Frame::Layer>
 =head1 AUTHOR
 
 Patrice E<lt>GomoRE<gt> Auffret
-Paolo Vanni Veñegas
+Paolo Vanni Venegas
 
 =head1 COPYRIGHT AND LICENSE
 
 Copyright (c) 2006-2009, Patrice E<lt>GomoRE<gt> Auffret
-Copyright (c) 2009, Paolo Vanni Veñegas
-
-Based
+Copyright (c) 2009, Paolo Vanni Venegas
 
 You may distribute this module under the terms of the Artistic license.
 See LICENSE.Artistic file in the source distribution archive.

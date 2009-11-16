@@ -1,10 +1,10 @@
 #
-# $Id: ICMPv6.pm 22 2009-11-13 06:46:39Z gomor $
+# $Id: ICMPv6.pm 24 2009-11-16 19:45:19Z gomor $
 #
 package Net::Frame::Layer::ICMPv6;
 use strict; use warnings;
 
-our $VERSION = '1.04';
+our $VERSION = '1.05';
 
 use Net::Frame::Layer qw(:consts :subs);
 use Exporter;

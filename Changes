@@ -1,11 +1,16 @@
 Revision history for Perl extension Net::Frame::Layer::ICMPv6.
 
+1.05 Mon Nov 16 20:43:50 CET 2009
+   - bugfix: permission on namespace for RouterAdvertisement
+     and RouterSolicitation
+   - cosmetics
+
 1.04 Fri Nov 13 07:46:21 CET 2009
    - bugfix: some new files were not put in MANIFEST :(
 
 1.03 Thu Nov 12 22:36:35 CET 2009
    - new: ICMPv6 RouterAdvertisement and RouterSolicitation
-   => Contributed by Paolo Vanni M. Veñegas
+   => Contributed by Paolo Vanni M. Venegas
 
 1.02 Sun May 31 17:12:08 CEST 2009
    - UPDATE: payload is no more an attribute in ICMPv6 modules, it is
