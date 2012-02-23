@@ -1,25 +1,27 @@
 #
-# $Id: Echo.pm 30 2012-02-18 12:08:22Z gomor $
+# Contributed by Vince http://www.vinsworld.com/
 #
-package Net::Frame::Layer::ICMPv6::Echo;
+# $Id: ParameterProblem.pm 32 2012-02-23 19:11:32Z gomor $
+#
+package Net::Frame::Layer::ICMPv6::ParameterProblem;
 use strict; use warnings;
 
-use Net::Frame::Layer qw(:consts :subs);
+use Net::Frame::Layer qw(:consts);
 our @ISA = qw(Net::Frame::Layer);
 
 our @AS = qw(
-   identifier
-   sequenceNumber
+   pointer
 );
 __PACKAGE__->cgBuildIndices;
 __PACKAGE__->cgBuildAccessorsScalar(\@AS);
 
 sub new {
-   shift->SUPER::new(
-      identifier     => getRandom16bitsInt(),
-      sequenceNumber => getRandom16bitsInt(),
+   my $self = shift->SUPER::new(
+      pointer  => 0,
       @_,
    );
+
+   return $self;
 }
 
 sub getLength { 4 }
@@ -27,9 +29,8 @@ sub getLength { 4 }
 sub pack {
    my $self = shift;
 
-   $self->raw($self->SUPER::pack('nn',
-      $self->identifier, $self->sequenceNumber,
-   )) or return;
+   $self->raw($self->SUPER::pack('N', $self->pointer))
+      or return;
 
    return $self->raw;
 }
@@ -37,23 +38,38 @@ sub pack {
 sub unpack {
    my $self = shift;
 
-   my ($identifier, $sequenceNumber, $payload) =
-      $self->SUPER::unpack('nn a*', $self->raw)
-         or return;
+   my ($pointer, $payload) = $self->SUPER::unpack('N a*', $self->raw)
+      or return undef;
 
-   $self->identifier($identifier);
-   $self->sequenceNumber($sequenceNumber);
+   $self->pointer($pointer);
    $self->payload($payload);
 
    return $self;
+}
+
+sub encapsulate {
+   my $self = shift;
+
+   return $self->nextLayer if $self->nextLayer;
+
+   if ($self->payload) {
+      my $pLen = length($self->payload);
+      if ($pLen < 40) {
+         $self->payload($self->payload.("\x00" x (40 - $pLen)));
+      } elsif ($pLen > 1240) {
+         $self->payload(substr $self->payload, 0, 1240);
+      }
+      return 'IPv6';
+   }
+
+   return NF_LAYER_NONE;
 }
 
 sub print {
    my $self = shift;
 
    my $l = $self->layer;
-   sprintf "$l: identifier:%d  sequenceNumber:%d",
-      $self->identifier, $self->sequenceNumber;
+   return sprintf "$l: pointer:0x%04x", $self->pointer;
 }
 
 1;
@@ -62,23 +78,22 @@ __END__
 
 =head1 NAME
 
-Net::Frame::Layer::ICMPv6::Echo - ICMPv6 Echo type object
+Net::Frame::Layer::ICMPv6::ParameterProblem - ICMPv6 ParameterProblem type object
 
 =head1 SYNOPSIS
 
-   use Net::Frame::Layer::ICMPv6::Echo;
+   use Net::Frame::Layer::ICMPv6::ParameterProblem;
 
-   my $layer = Net::Frame::Layer::ICMPv6::Echo->new(
-      identifier     => getRandom16bitsInt(),
-      sequenceNumber => getRandom16bitsInt(),
-      payload        => '',
+   my $layer = Net::Frame::Layer::ICMPv6::ParameterProblem->new(
+      pointer => 0,
+      payload => '',
    );
    $layer->pack;
 
    print 'RAW: '.$layer->dump."\n";
 
    # Read a raw layer
-   my $layer = Net::Frame::Layer::ICMPv6::Echo->new(raw => $raw);
+   my $layer = Net::Frame::Layer::ICMPv6::ParameterProblem->new(raw => $raw);
 
    print $layer->print."\n";
    print 'PAYLOAD: '.unpack('H*', $layer->payload)."\n"
@@ -86,7 +101,7 @@ Net::Frame::Layer::ICMPv6::Echo - ICMPv6 Echo type object
 
 =head1 DESCRIPTION
 
-This modules implements the encoding and decoding of the ICMPv6 Echo object.
+This modules implements the encoding and decoding of the ICMPv6 ParameterProblem object.
 
 See also B<Net::Frame::Layer> for other attributes and methods.
 
@@ -94,13 +109,9 @@ See also B<Net::Frame::Layer> for other attributes and methods.
 
 =over 4
 
-=item B<identifier>
+=item B<pointer>
 
-Identification number.
-
-=item B<sequenceNumber>
-
-Sequence number.
+Identifies the octet offset within the invoking packet where the error was detected.
 
 =back
 

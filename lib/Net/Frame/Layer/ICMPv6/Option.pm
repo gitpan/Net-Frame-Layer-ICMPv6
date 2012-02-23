@@ -1,5 +1,5 @@
 #
-# $Id: Option.pm 17 2009-11-12 21:18:12Z gomor $
+# $Id: Option.pm 30 2012-02-18 12:08:22Z gomor $
 #
 package Net::Frame::Layer::ICMPv6::Option;
 use strict; use warnings;
@@ -183,7 +183,7 @@ Patrice E<lt>GomoRE<gt> Auffret
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (c) 2006-2009, Patrice E<lt>GomoRE<gt> Auffret
+Copyright (c) 2006-2012, Patrice E<lt>GomoRE<gt> Auffret
 
 You may distribute this module under the terms of the Artistic license.
 See LICENSE.Artistic file in the source distribution archive.

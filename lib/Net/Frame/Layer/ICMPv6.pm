@@ -1,10 +1,10 @@
 #
-# $Id: ICMPv6.pm 24 2009-11-16 19:45:19Z gomor $
+# $Id: ICMPv6.pm 32 2012-02-23 19:11:32Z gomor $
 #
 package Net::Frame::Layer::ICMPv6;
 use strict; use warnings;
 
-our $VERSION = '1.05';
+our $VERSION = '1.06';
 
 use Net::Frame::Layer qw(:consts :subs);
 use Exporter;
@@ -19,6 +19,8 @@ our %EXPORT_TAGS = (
       NF_ICMPv6_CODE_NOTASSIGNED
       NF_ICMPv6_CODE_ADDRESSUNREACH
       NF_ICMPv6_CODE_PORTUNREACH
+      NF_ICMPv6_CODE_FAILPOLICY
+      NF_ICMPv6_CODE_REJECTROUTE
       NF_ICMPv6_TYPE_TOOBIG
       NF_ICMPv6_TYPE_TIMEEXCEED
       NF_ICMPv6_CODE_HOPLIMITEXCEED
@@ -56,6 +58,8 @@ use constant NF_ICMPv6_CODE_ADMINPROHIBITED         => 1;
 use constant NF_ICMPv6_CODE_NOTASSIGNED             => 2;
 use constant NF_ICMPv6_CODE_ADDRESSUNREACH          => 3;
 use constant NF_ICMPv6_CODE_PORTUNREACH             => 4;
+use constant NF_ICMPv6_CODE_FAILPOLICY              => 5;
+use constant NF_ICMPv6_CODE_REJECTROUTE             => 6;
 use constant NF_ICMPv6_TYPE_TOOBIG                  => 2;
 use constant NF_ICMPv6_TYPE_TIMEEXCEED              => 3;
 use constant NF_ICMPv6_CODE_HOPLIMITEXCEED          => 0;
@@ -165,20 +169,43 @@ sub computeChecksums {
    my ($layers) = @_;
 
    my $icmpType;
-   for my $l (@$layers) {
-      if ($l->layer =~ /ICMPv6::/) { $icmpType = $l; last; }
-   }
    my $ip;
+   my $rh0;
+   my $lastNextHeader;
+   my $fragmentFlag = 0;
    for my $l (@$layers) {
-      if ($l->layer eq 'IPv6') { $ip = $l; last; }
+      if (! $icmpType && $l->layer =~ /ICMPv6::/)      { $icmpType = $l; }
+      if (! $ip       && $l->layer eq 'IPv6')          { $ip       = $l; }
+      if (! $rh0      && $l->layer eq 'IPv6::Routing') { $rh0      = $l; }
+
+      if ($l->can('nextHeader')) { $lastNextHeader = $l->nextHeader; }
+
+      if ($l->layer eq 'IPv6::Fragment') { $fragmentFlag = 1; }
    }
 
+   my $lastIpDst       = $ip->dst;
+   my $ipPayloadLength = $ip->payloadLength;
+   # If RH0, need to set $ip->dst to last $rh0->addresses
+   # unless segmentsLeft == 0 (RFC 2460 sec 8.1)
+   if ($rh0 && $rh0->segmentsLeft != 0) {
+      for ($rh0->addresses) {
+         $lastIpDst = $_;
+      }
+      # Pseudo header lenght is upper layer minus any EH (RFC 2460 sec 8.1)
+      $ipPayloadLength -= $rh0->getLength;
+   }
+   # Pseudo header lenght is upper layer minus any EH (RFC 2460 sec 8.1)
+   if ($fragmentFlag) {
+      $ipPayloadLength -= 8; # 8 = length of fragment EH
+   }
+
+   # Build pseudo-header and pack ICMPv6 packet
    my $zero       = Bit::Vector->new_Dec(24, 0);
-   my $nextHeader = Bit::Vector->new_Dec( 8, $ip->nextHeader);
+   my $nextHeader = Bit::Vector->new_Dec( 8, $lastNextHeader);
    my $v32        = $zero->Concat_List($nextHeader);
 
    my $packed = $self->SUPER::pack('a*a*NNCCna*',
-      inet6Aton($ip->src), inet6Aton($ip->dst), $ip->payloadLength,
+      inet6Aton($ip->src), inet6Aton($lastIpDst), $ipPayloadLength,
       $v32->to_Dec, $self->type, $self->code, 0, $icmpType->pack,
    ) or return;
 
@@ -195,9 +222,7 @@ sub encapsulate {
 
    if ($self->payload) {
       my $type = $self->type;
-#     if ($type eq NF_ICMPv6_TYPE_DESTUNREACH
-#     ||  $type eq NF_ICMPv6_TYPE_REDIRECT
-#     ||  $type eq NF_ICMPv6_TYPE_TIMEEXCEED) {
+#     if ($type eq NF_ICMPv6_TYPE_REDIRECT) {
 #        return 'IPv6';
 #     }
       if ($type eq NF_ICMPv6_TYPE_ECHO_REQUEST
@@ -215,6 +240,18 @@ sub encapsulate {
       }
       elsif ($type eq NF_ICMPv6_TYPE_ROUTERADVERTISEMENT) {
          return 'ICMPv6::RouterAdvertisement';
+      }
+      elsif ($type eq NF_ICMPv6_TYPE_DESTUNREACH) {
+         return 'ICMPv6::DestUnreach';
+      }
+      elsif ($type eq NF_ICMPv6_TYPE_TIMEEXCEED) {
+         return 'ICMPv6::TimeExceed';
+      }
+      elsif ($type eq NF_ICMPv6_TYPE_TOOBIG) {
+         return 'ICMPv6::TooBig';
+      }
+      elsif ($type eq NF_ICMPv6_TYPE_PARAMETERPROBLEM) {
+         return 'ICMPv6::ParameterProblem';
       }
    }
 
@@ -399,6 +436,10 @@ Various types and codes for ICMPv6 header.
 
 =item B<NF_ICMPv6_CODE_PORTUNREACH>
 
+=item B<NF_ICMPv6_CODE_FAILPOLICY>
+
+=item B<NF_ICMPv6_CODE_REJECTROUTE>
+
 =item B<NF_ICMPv6_TYPE_TOOBIG>
 
 =item B<NF_ICMPv6_TYPE_TIMEEXCEED>
@@ -477,7 +518,7 @@ Patrice E<lt>GomoRE<gt> Auffret
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (c) 2006-2009, Patrice E<lt>GomoRE<gt> Auffret
+Copyright (c) 2006-2012, Patrice E<lt>GomoRE<gt> Auffret
 
 You may distribute this module under the terms of the Artistic license.
 See LICENSE.Artistic file in the source distribution archive.

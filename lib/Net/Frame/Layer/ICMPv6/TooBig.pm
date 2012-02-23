@@ -1,25 +1,27 @@
 #
-# $Id: Echo.pm 30 2012-02-18 12:08:22Z gomor $
+# Contributed by Vince http://www.vinsworld.com/
 #
-package Net::Frame::Layer::ICMPv6::Echo;
+# $Id: TooBig.pm 30 2012-02-18 12:08:22Z gomor $
+#
+package Net::Frame::Layer::ICMPv6::TooBig;
 use strict; use warnings;
 
-use Net::Frame::Layer qw(:consts :subs);
+use Net::Frame::Layer qw(:consts);
 our @ISA = qw(Net::Frame::Layer);
 
 our @AS = qw(
-   identifier
-   sequenceNumber
+   mtu
 );
 __PACKAGE__->cgBuildIndices;
 __PACKAGE__->cgBuildAccessorsScalar(\@AS);
 
 sub new {
-   shift->SUPER::new(
-      identifier     => getRandom16bitsInt(),
-      sequenceNumber => getRandom16bitsInt(),
+   my $self = shift->SUPER::new(
+      mtu  => 0,
       @_,
    );
+
+   return $self;
 }
 
 sub getLength { 4 }
@@ -27,9 +29,8 @@ sub getLength { 4 }
 sub pack {
    my $self = shift;
 
-   $self->raw($self->SUPER::pack('nn',
-      $self->identifier, $self->sequenceNumber,
-   )) or return;
+   $self->raw($self->SUPER::pack('N', $self->mtu))
+      or return;
 
    return $self->raw;
 }
@@ -37,23 +38,38 @@ sub pack {
 sub unpack {
    my $self = shift;
 
-   my ($identifier, $sequenceNumber, $payload) =
-      $self->SUPER::unpack('nn a*', $self->raw)
-         or return;
+   my ($mtu, $payload) = $self->SUPER::unpack('N a*', $self->raw)
+      or return undef;
 
-   $self->identifier($identifier);
-   $self->sequenceNumber($sequenceNumber);
+   $self->mtu($mtu);
    $self->payload($payload);
 
    return $self;
+}
+
+sub encapsulate {
+   my $self = shift;
+
+   return $self->nextLayer if $self->nextLayer;
+
+   if ($self->payload) {
+      my $pLen = length($self->payload);
+      if ($pLen < 40) {
+         $self->payload($self->payload.("\x00" x (40 - $pLen)));
+      } elsif ($pLen > 1240) {
+         $self->payload(substr $self->payload, 0, 1240);
+      }
+      return 'IPv6';
+   }
+
+   return NF_LAYER_NONE;
 }
 
 sub print {
    my $self = shift;
 
    my $l = $self->layer;
-   sprintf "$l: identifier:%d  sequenceNumber:%d",
-      $self->identifier, $self->sequenceNumber;
+   return sprintf "$l: mtu:%d", $self->mtu;
 }
 
 1;
@@ -62,23 +78,22 @@ __END__
 
 =head1 NAME
 
-Net::Frame::Layer::ICMPv6::Echo - ICMPv6 Echo type object
+Net::Frame::Layer::ICMPv6::TooBig - ICMPv6 TooBig type object
 
 =head1 SYNOPSIS
 
-   use Net::Frame::Layer::ICMPv6::Echo;
+   use Net::Frame::Layer::ICMPv6::TooBig;
 
-   my $layer = Net::Frame::Layer::ICMPv6::Echo->new(
-      identifier     => getRandom16bitsInt(),
-      sequenceNumber => getRandom16bitsInt(),
-      payload        => '',
+   my $layer = Net::Frame::Layer::ICMPv6::TooBig->new(
+      mtu     => 0,
+      payload => '',
    );
    $layer->pack;
 
    print 'RAW: '.$layer->dump."\n";
 
    # Read a raw layer
-   my $layer = Net::Frame::Layer::ICMPv6::Echo->new(raw => $raw);
+   my $layer = Net::Frame::Layer::ICMPv6::TooBig->new(raw => $raw);
 
    print $layer->print."\n";
    print 'PAYLOAD: '.unpack('H*', $layer->payload)."\n"
@@ -86,7 +101,7 @@ Net::Frame::Layer::ICMPv6::Echo - ICMPv6 Echo type object
 
 =head1 DESCRIPTION
 
-This modules implements the encoding and decoding of the ICMPv6 Echo object.
+This modules implements the encoding and decoding of the ICMPv6 TooBig object.
 
 See also B<Net::Frame::Layer> for other attributes and methods.
 
@@ -94,13 +109,9 @@ See also B<Net::Frame::Layer> for other attributes and methods.
 
 =over 4
 
-=item B<identifier>
+=item B<mtu>
 
-Identification number.
-
-=item B<sequenceNumber>
-
-Sequence number.
+Maximum Transmission Unit of the next-hop link.
 
 =back
 

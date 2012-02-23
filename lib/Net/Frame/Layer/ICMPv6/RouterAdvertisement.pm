@@ -3,7 +3,7 @@
 # pvenegas@infoweapons.com
 #
 #
-# $Id: RouterAdvertisement.pm 24 2009-11-16 19:45:19Z gomor $
+# $Id: RouterAdvertisement.pm 30 2012-02-18 12:08:22Z gomor $
 #
 package Net::Frame::Layer::ICMPv6::RouterAdvertisement;
 use strict; use warnings;
@@ -261,8 +261,8 @@ Paolo Vanni Venegas
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (c) 2006-2009, Patrice E<lt>GomoRE<gt> Auffret
-Copyright (c) 2009, Paolo Vanni Venegas
+Copyright (c) 2006-2012, Patrice E<lt>GomoRE<gt> Auffret
+Copyright (c) 2009-2012, Paolo Vanni Venegas
 
 You may distribute this module under the terms of the Artistic license.
 See LICENSE.Artistic file in the source distribution archive.
