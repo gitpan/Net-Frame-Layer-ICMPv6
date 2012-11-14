@@ -1,10 +1,10 @@
 #
-# $Id: ICMPv6.pm 32 2012-02-23 19:11:32Z gomor $
+# $Id: ICMPv6.pm 35 2012-11-10 15:28:09Z gomor $
 #
 package Net::Frame::Layer::ICMPv6;
 use strict; use warnings;
 
-our $VERSION = '1.06';
+our $VERSION = '1.07';
 
 use Net::Frame::Layer qw(:consts :subs);
 use Exporter;
@@ -171,12 +171,18 @@ sub computeChecksums {
    my $icmpType;
    my $ip;
    my $rh0;
+   my $hbh; # Hop-by-hop Ext Hdr
+   my $dst; # Destination Ext Hdr
+   my $mob; # Mobility Ext Hdr
    my $lastNextHeader;
    my $fragmentFlag = 0;
    for my $l (@$layers) {
-      if (! $icmpType && $l->layer =~ /ICMPv6::/)      { $icmpType = $l; }
-      if (! $ip       && $l->layer eq 'IPv6')          { $ip       = $l; }
-      if (! $rh0      && $l->layer eq 'IPv6::Routing') { $rh0      = $l; }
+      if (! $icmpType && $l->layer =~ /ICMPv6::/)          { $icmpType = $l; }
+      if (! $ip       && $l->layer eq 'IPv6')              { $ip       = $l; }
+      if (! $rh0      && $l->layer eq 'IPv6::Routing')     { $rh0      = $l; }
+      if (! $hbh      && $l->layer eq 'IPv6::HopByHop')    { $hbh      = $l; }
+      if (! $dst      && $l->layer eq 'IPv6::Destination') { $dst      = $l; }
+      if (! $mob      && $l->layer eq 'IPv6::Mobility')    { $mob      = $l; }
 
       if ($l->can('nextHeader')) { $lastNextHeader = $l->nextHeader; }
 
@@ -191,12 +197,21 @@ sub computeChecksums {
       for ($rh0->addresses) {
          $lastIpDst = $_;
       }
-      # Pseudo header lenght is upper layer minus any EH (RFC 2460 sec 8.1)
+      # Pseudo header length is upper layer minus any EH (RFC 2460 sec 8.1)
       $ipPayloadLength -= $rh0->getLength;
    }
-   # Pseudo header lenght is upper layer minus any EH (RFC 2460 sec 8.1)
+   # Pseudo header length is upper layer minus any EH (RFC 2460 sec 8.1)
    if ($fragmentFlag) {
       $ipPayloadLength -= 8; # 8 = length of fragment EH
+   }
+   if ($hbh) {
+      $ipPayloadLength -= $hbh->getLength;
+   }
+   if ($dst) {
+      $ipPayloadLength -= $dst->getLength;
+   }
+   if ($mob) {
+      $ipPayloadLength -= $mob->getLength;
    }
 
    # Build pseudo-header and pack ICMPv6 packet

@@ -1,5 +1,5 @@
 #
-# $Id: Option.pm 30 2012-02-18 12:08:22Z gomor $
+# $Id: Option.pm 35 2012-11-10 15:28:09Z gomor $
 #
 package Net::Frame::Layer::ICMPv6::Option;
 use strict; use warnings;
@@ -26,27 +26,30 @@ sub new {
    );
 }
 
-sub getLength { shift->length * 8 }
+sub getLength {
+   my $self = shift;
+
+   return length($self->value) + 2;
+}
 
 sub pack {
    my $self = shift;
 
    $self->raw($self->SUPER::pack('CCa*',
       $self->type, $self->length, $self->value,
-   )) or return undef;
+   )) or return;
 
-   $self->raw;
+   return $self->raw;
 }
 
 sub unpack {
    my $self = shift;
 
    my ($type, $length, $tail) = $self->SUPER::unpack('CC a*', $self->raw)
-      or return undef;
+      or return;
 
-   my $bLen = $length * 8 - 2; # minus two bytes for type and length -pmv
-   my ($value, $payload) = $self->SUPER::unpack("a$bLen a*", $tail)
-      or return undef;
+   my ($value, $payload) = $self->SUPER::unpack("a$length a*", $tail)
+      or return;
 
    $self->type($type);
    $self->length($length);
@@ -54,7 +57,7 @@ sub unpack {
 
    $self->payload($payload);
 
-   $self;
+   return $self;
 }
 
 sub print {

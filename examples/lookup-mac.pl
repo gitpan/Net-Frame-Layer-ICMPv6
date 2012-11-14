@@ -66,9 +66,8 @@ my $ns = Net::Frame::Layer::ICMPv6::NeighborSolicitation->new(
    targetAddress => $target,
    options       => [
       Net::Frame::Layer::ICMPv6::Option->new(
-         type   => NF_ICMPv6_OPTION_SOURCELINKLAYERADDRESS,
-         length => 1,
-         value  => pack('H2H2H2H2H2H2', split(':', $oDevice->mac)),
+         type  => NF_ICMPv6_OPTION_SOURCELINKLAYERADDRESS,
+         value => pack('H2H2H2H2H2H2', split(':', $oDevice->mac)),
       ),
    ],
 );
