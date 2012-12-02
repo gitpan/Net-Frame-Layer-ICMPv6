@@ -21,4 +21,4 @@ requires:
   Bit::Vector: 0
   Net::Frame: 0
   perl: 5.006001
-version: 1.07
+version: 1.08

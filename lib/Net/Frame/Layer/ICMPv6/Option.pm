@@ -1,5 +1,5 @@
 #
-# $Id: Option.pm 35 2012-11-10 15:28:09Z gomor $
+# $Id: Option.pm 43 2012-12-02 16:11:10Z gomor $
 #
 package Net::Frame::Layer::ICMPv6::Option;
 use strict; use warnings;
@@ -15,7 +15,7 @@ our @AS = qw(
 __PACKAGE__->cgBuildIndices;
 __PACKAGE__->cgBuildAccessorsScalar(\@AS);
 
-#no strict 'vars';
+use Net::Frame::Layer::ICMPv6 qw(:consts);
 
 sub new {
    shift->SUPER::new(
@@ -48,13 +48,18 @@ sub unpack {
    my ($type, $length, $tail) = $self->SUPER::unpack('CC a*', $self->raw)
       or return;
 
+   $self->type($type);
+   $self->length($length);
+
+   # Dirty hack. Some systems does not set the length correctly
+   if ($type == NF_ICMPv6_OPTION_TARGETLINKLAYERADDRESS) {
+      $length = 6;
+   }
+
    my ($value, $payload) = $self->SUPER::unpack("a$length a*", $tail)
       or return;
 
-   $self->type($type);
-   $self->length($length);
    $self->value($value);
-
    $self->payload($payload);
 
    return $self;
