@@ -1,10 +1,10 @@
 #
-# $Id: ICMPv6.pm 43 2012-12-02 16:11:10Z gomor $
+# $Id: ICMPv6.pm 45 2014-04-09 06:32:08Z gomor $
 #
 package Net::Frame::Layer::ICMPv6;
 use strict; use warnings;
 
-our $VERSION = '1.08';
+our $VERSION = '1.09';
 
 use Net::Frame::Layer qw(:consts :subs);
 use Exporter;
@@ -403,7 +403,7 @@ This method is mostly used internally. You pass a B<Net::Frame::Layer::ICMPv6> l
 
 =back
 
-The following are inherited methods. Some of them may be overriden in this layer, and some others may not be meaningful in this layer. See B<Net::Frame::Layer> for more information.
+The following are inherited methods. Some of them may be overridden in this layer, and some others may not be meaningful in this layer. See B<Net::Frame::Layer> for more information.
 
 =over 4
 
@@ -533,7 +533,7 @@ Patrice E<lt>GomoRE<gt> Auffret
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (c) 2006-2012, Patrice E<lt>GomoRE<gt> Auffret
+Copyright (c) 2006-2014, Patrice E<lt>GomoRE<gt> Auffret
 
 You may distribute this module under the terms of the Artistic license.
 See LICENSE.Artistic file in the source distribution archive.

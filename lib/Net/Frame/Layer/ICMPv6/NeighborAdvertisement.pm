@@ -1,5 +1,5 @@
 #
-# $Id: NeighborAdvertisement.pm 30 2012-02-18 12:08:22Z gomor $
+# $Id: NeighborAdvertisement.pm 45 2014-04-09 06:32:08Z gomor $
 #
 package Net::Frame::Layer::ICMPv6::NeighborAdvertisement;
 use strict; use warnings;
@@ -201,7 +201,7 @@ Returns the length in bytes of options, 0 if none.
 
 =back
 
-The following are inherited methods. Some of them may be overriden in this layer, and some others may not be meaningful in this layer. See B<Net::Frame::Layer> for more information.
+The following are inherited methods. Some of them may be overridden in this layer, and some others may not be meaningful in this layer. See B<Net::Frame::Layer> for more information.
 
 =over 4
 
@@ -241,7 +241,7 @@ Patrice E<lt>GomoRE<gt> Auffret
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (c) 2006-2012, Patrice E<lt>GomoRE<gt> Auffret
+Copyright (c) 2006-2014, Patrice E<lt>GomoRE<gt> Auffret
 
 You may distribute this module under the terms of the Artistic license.
 See LICENSE.Artistic file in the source distribution archive.
